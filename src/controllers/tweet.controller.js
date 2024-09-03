@@ -48,7 +48,7 @@ const getUserTweets = asyncHandler(async (req, res) => {
     },
     {
         $lookup: {
-            form:"users",
+            from:"users",
             localField:"owner",
             foreignField:"_id",
             as:"ownerDetails",
