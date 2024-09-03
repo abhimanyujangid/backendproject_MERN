@@ -6,7 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken"
 
-//---------------------------generateAccessAndRefereshTokens--------------------------
+//---------------------------generateAccessAndRefereshTokens---------------
 const generateAccessAndRefereshTokens = async (userId) => {
     try {
         const user = await User.findById(userId)
@@ -24,7 +24,7 @@ const generateAccessAndRefereshTokens = async (userId) => {
     }
 }
 
-//--------------------------------register user ------------------------------------
+//--------------------------------register user --------------------------
 const registerUser = asyncHandler(async (req, res) => {
     // Get user details from frontend
     const { fullName, email, username, password } = req.body;
@@ -88,7 +88,7 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 });
 
-// -------------------------------login user------------------------------------------
+// -------------------------------login user----------------------------
 const loginUser = asyncHandler(async (req, res) => {
     // req body -> data
     const { email, username, password } = req.body
