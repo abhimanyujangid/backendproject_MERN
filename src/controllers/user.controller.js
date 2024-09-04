@@ -276,7 +276,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, user, "Account details update sucessfully"))
 })
 
-//--------------------------------updateAvtar----------------------
+//-------------------------updateAvtar---------------------------
 const updateUserAvatar = asyncHandler(async (req, res) => {
 
     /// TODO:delete old image -assigment
@@ -305,7 +305,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, user, "Avatar  update sucessfully"))
 })
 
-//---------------------------------updateCoverImage--------------
+//--------------------------updateCoverImage-------==========-------
 const updateUserCoverImage = asyncHandler(async (req, res) => {
 
     const coverImageLocalPath = req.file?.path
@@ -333,7 +333,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, user, "CoverImage  update sucessfully"))
 })
 
-//--------------------------------getUserChannelprofile----------
+//------------------------getUserChannelprofile----------------------
 const getUserChannelProfile = asyncHandler(async(req, res) => {
     const {username} = req.params
 
@@ -407,7 +407,7 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
 })
 
 
-//---------------------------------getWatchHistory----------
+//---------------------------getWatchHistory---------------------
 const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
