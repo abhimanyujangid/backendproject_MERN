@@ -3,6 +3,7 @@ import cors from 'cors';
 import logger from "./logger.js";
 import morgan from "morgan";
 import cookieParser from "cookie-parser"
+import errorHandler from "./middlewares/error.middlewares.js";
 
 const app = express();
 
@@ -42,7 +43,12 @@ app.use(
   
 // import routes
 import healthCheckRouter from './routes/healthCheck.routes.js';
+import userRouter from './routes/user.routes.js';
 // routes
 app.use('/api/v1/healthChecked', healthCheckRouter);
+app.use('/api/v1/users', userRouter);
 
+
+// Error handling middleware
+// app.use(errorHandler);
 export { app };

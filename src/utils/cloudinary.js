@@ -1,36 +1,53 @@
-import {v2 as cloudinary} from 'cloudinary';
+import { v2 as cloudinary } from 'cloudinary';
 import logger from '../logger.js';
-import {promisify} from 'util';
-import stream from 'stream';
 import fs from 'fs';
+import { promisify } from 'util';
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
-}); 
-
+});
 
 const deleteFile = promisify(fs.unlink);
 
 const uploadOnCloudinary = async (localFilePath) => {
     if (!fs.existsSync(localFilePath)) {
-        return null;
+        throw new Error("File does not exist at the specified path.");
     }
-    const passthrough = new stream.PassThrough();
-    const uploadPromise = cloudinary.uploader.upload_stream({
-        resource_type: "auto",
-    }, (error, result) => {
-        if (error) {
-            logger.error(`Error uploading file to cloudinary: ${error}`);
-            return deleteFile(localFilePath);
-        }
-        logger.info(`File uploaded on cloudinary: ${result.secure_url}`);
-        deleteFile(localFilePath);
-        return result;
+
+    return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+            { resource_type: "auto" },
+            async (error, result) => {
+                // Delete the local file after processing
+                await deleteFile(localFilePath).catch(err => {
+                    logger.error(`Error deleting file: ${err.message}`);
+                });
+
+                if (error) {
+                    logger.error(`Error uploading file to Cloudinary: ${error.message}`);
+                    return reject(error);
+                }
+
+                logger.info(`File successfully uploaded to Cloudinary: ${result.secure_url}`);
+                resolve(result);
+            }
+        );
+
+        // Pipe file to Cloudinary
+        fs.createReadStream(localFilePath).pipe(uploadStream);
     });
-    fs.createReadStream(localFilePath).pipe(passthrough).pipe(uploadPromise);
-    return uploadPromise;
 };
 
-export default uploadOnCloudinary;
+const deleteCloudinaryImage = async (publicId) => {
+    try {
+        await cloudinary.uploader.destroy(publicId);
+        logger.info(`Image successfully deleted from Cloudinary: ${publicId}`);
+    } catch (error) {
+        logger.error(`Error deleting image from Cloudinary: ${error.message}`);
+        return null;
+    }
+};
+
+export  {uploadOnCloudinary, deleteCloudinaryImage};
