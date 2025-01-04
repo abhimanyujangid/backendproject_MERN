@@ -1,30 +1,48 @@
-import express from "express";
-import cors from "cors";
-import cookieParser from "cookie-parser"; // Correct import
+import express from 'express';
+import cors from 'cors';
+import logger from "./logger.js";
+import morgan from "morgan";
+import cookieParser from "cookie-parser"
 
 const app = express();
 
-// Middleware setup
-app.use(cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: true
+const morganFormat = ":method :url :status :response-time ms";
+// Common middleware
+app.use(cors(
+    {
+        origin: process.env.CORS_ORIGIN,
+        credentials: true
+    }
+));
+app.use(express.json({
+    limit: '16kb'
 }));
-app.use(express.json({ limit: "16kb" }));
-app.use(express.urlencoded({ extended: true, limit: "16kb" }));
-app.use(express.static("public"));
-app.use(cookieParser()); // Correct usage
+app.use(express.urlencoded({
+    extended: true
+}));
+app.use(express.static('public'));
 
-// Routes import
-import userRouter from './routes/user.routes.js';
-import tweetRouter from './routes/tweet.routes.js'
-import commentRouter from './routes/comment.routes.js'
-import likeRouter from './routes/like.routes.js'
+// Logging middleware
+app.use(
+    morgan(morganFormat, {
+      stream: {
+        write: (message) => {
+          const logObject = {
+            method: message.split(" ")[0],
+            url: message.split(" ")[1],
+            status: message.split(" ")[2],
+            responseTime: message.split(" ")[3],
+          };
+          logger.info(JSON.stringify(logObject));
+        },
+      },
+    })
+  );
 
-// Routes declaration
-app.use("/api/v1/users", userRouter);
-app.use("/api/v1/tweet", tweetRouter);
-app.use("/api/v1/comment",commentRouter);
-app.use("/api/v1/likes",likeRouter);
-
+  
+// import routes
+import healthCheckRouter from './routes/healthCheck.routes.js';
+// routes
+app.use('/api/v1/healthChecked', healthCheckRouter);
 
 export { app };
