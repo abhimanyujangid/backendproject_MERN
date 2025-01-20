@@ -26,7 +26,9 @@ const createTweet = asyncHandler(async (req, res) => {
 
 const getUserTweets = asyncHandler(async (req, res) => {
     // TODO: get user tweets
+
     const {userId} = req.params
+    const {page = 1, limit = 10} = req.query
     if(!isValidObjectId(userId)) {
         throw new ApiError(400, "Invalid user id")
     }
@@ -35,6 +37,8 @@ const getUserTweets = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User not found")
     }
     const tweets = await Tweet.find({owner: userId})
+    .skip((page - 1) * limit)
+    .limit(limit)
     if(!tweets) {
         throw new ApiError(404, "User has no tweets")
     }
