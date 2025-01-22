@@ -44,9 +44,11 @@ app.use(
 // import routes
 import healthCheckRouter from './routes/healthCheck.routes.js';
 import userRouter from './routes/user.routes.js';
+import tweetRouter from './routes/tweet.routes.js';
 // routes
 app.use('/api/v1/healthChecked', healthCheckRouter);
 app.use('/api/v1/users', userRouter);
+aap.use('/api/v1/tweets', tweetRouter);
 
 
 // Error handling middleware
