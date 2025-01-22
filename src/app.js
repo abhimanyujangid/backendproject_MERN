@@ -8,6 +8,7 @@ import errorHandler from "./middlewares/error.middlewares.js";
 const app = express();
 
 const morganFormat = ":method :url :status :response-time ms";
+
 // Common middleware
 app.use(cors(
     {
@@ -45,10 +46,12 @@ app.use(
 import healthCheckRouter from './routes/healthCheck.routes.js';
 import userRouter from './routes/user.routes.js';
 import tweetRouter from './routes/tweet.routes.js';
+import likeRouter from './routes/like.routes.js';
 // routes
 app.use('/api/v1/healthChecked', healthCheckRouter);
 app.use('/api/v1/users', userRouter);
-aap.use('/api/v1/tweets', tweetRouter);
+app.use('/api/v1/tweets', tweetRouter);
+app.use('/api/v1/like', likeRouter);
 
 
 // Error handling middleware
