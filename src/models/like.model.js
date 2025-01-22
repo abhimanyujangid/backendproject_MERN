@@ -13,11 +13,6 @@ const likeSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Tweet',
     },
-    owner: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
-    },
     likeBy: {
         type: Schema.Types.ObjectId,
         ref: 'User',
