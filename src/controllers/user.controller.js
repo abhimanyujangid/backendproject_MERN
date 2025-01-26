@@ -78,8 +78,14 @@ const registerUser = asyncHandler(async (req, res) => {
             email,
             password,
             username: username.toLowerCase(),
-            avatar: avatar.secure_url,
-            coverImage: coverImage.secure_url
+            avatar: {
+                public_id: avatar.public_id,
+                url: avatar.secure_url
+            },
+            coverImage:{
+                public_id: coverImage.public_id,
+                url: coverImage.secure_url
+            }
         });
 
         const createdUser = await User.findById(user._id).select("-password -refreshToken");
@@ -183,27 +189,27 @@ const logout = asyncHandler(async (req, res) => {
     if (!userId) {
         throw new ApiError(400, "User ID is required.");
     }
-        await User.findByIdAndUpdate(userId,
-        {
-            $set: { refreshToken: undefined }
-        },{
-            new: true,
-        }
-    );
 
-    
+    await User.findByIdAndUpdate(
+        userId,
+        { $unset: { refreshToken: 1 } },
+        { new: true }
+    );
 
     // Clear the cookies from the client
     const options = {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-    }
-    res
-        .status(200)
-        .clearCookie('accessToken',options)
-        .clearCookie('refreshToken',options)
-        .json(new ApiResponse(200,{}, "User logged out successfully."));
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+    };
+    
+    return res
+    .status(200)
+    .clearCookie('accessToken', options)
+    .clearCookie('refreshToken', options)
+    .json(new ApiResponse(200,{}, "User logged out successfully"));
 });
+
 //=====================FORGOT PASSWORD=====================
 const forgotPassword = asyncHandler(async (req, res) => { });
 //=====================updateAccountDetails=====================  
@@ -307,18 +313,36 @@ const updateAvatarAndCoverImage = asyncHandler(async (req, res) => {
     }
 
     const user = await User.findById(req.user?._id).select("-password -refreshToken");
+    const avatarToDelete = user.avatar?.public_id;
+    const coverImageToDelete = user.coverImage?.public_id;
+
+    
+
     if (!user) {
         throw new ApiError(404, "User not found.");
     }
 
     if (avatar) {
-        user.avatar = avatar.secure_url;
+        user.avatar = {
+            public_id: avatar.public_id,
+            url: avatar.secure_url
+        };
     }
     if (coverImage) {
-        user.coverImage = coverImage.secure_url;
+        user.coverImage = {
+            public_id: coverImage.public_id,
+            url: coverImage.secure_url
+        };
     }
 
     await user.save({ validateBeforeSave: false });
+
+    if (avatarToDelete && avatar) {
+        await deleteCloudinaryImage(avatarToDelete);
+    }
+    if (coverImageToDelete) {
+        await deleteCloudinaryImage(coverImageToDelete);
+    }
 
     res.status(200).json(new ApiResponse(200, user, "Avatar and/or cover image updated successfully."));
 });
