@@ -6,12 +6,17 @@ import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 
-
+// Pending.................................................
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
     //TODO: get all videos based on query, sort, pagination
+
+    const match = [];
+
+
 })
 
+// Done
 const publishAVideo = asyncHandler(async (req, res) => {
   
         const { title, description} = req.body
@@ -57,7 +62,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
         return res.status(201).json(new ApiResponse(201, {video: savedVideo}, "Video published successfully"))
     
 });
-
 
 // Done
 const getVideoById = asyncHandler(async (req, res) => {
@@ -163,19 +167,136 @@ const getVideoById = asyncHandler(async (req, res) => {
     
 })
 
+// Done
 const updateVideo = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
-    //TODO: update video details like title, description, thumbnail
 
+    const { videoId } = req.params
+    const { title, description } = req.body
+    const localThumbnailPath = req.files?.thumbnail[0].path;
+
+    if([title, description].some((field)=> field?.trim() === "")) {
+        throw new ApiError(400, "Please provide a valid title and description")
+    }
+
+     if(!isValidObjectId(videoId)) {
+        throw new ApiError(404, "Video not found")
+    }
+
+    const video = await Video.findById(videoId);
+
+    if(!video) {
+        throw new ApiError(404, "Video not found")
+    }
+
+    if(video.owner.toString() !== req.user?._id.toString()) {
+        throw new ApiError(403, "You are not allowed to perform this action")
+    }
+
+    const thumbnailPublicId = video?.thumbnail?.public_id;
+
+    // upload new thumbnail if provided
+    if(localThumbnailPath) {
+        const thumbnail = await uploadOnCloudinary(localThumbnailPath);
+        if(!thumbnail?.public_id || !thumbnail?.url) {
+            throw new ApiError(500, "Error uploading thumbnail, please try again")
+        }
+        if(thumbnailPublicId) {
+            await deleteOnCloudinary(thumbnailPublicId);
+        }
+        video.thumbnail = {
+            url: thumbnail.url,
+            public_id: thumbnail.public_id
+        };
+
+    }
+
+    const updatedVideo = await Video.findByIdAndUpdate(videoId, {
+        $set: {
+            title,
+            description,
+        }
+    }, {new: true})
+
+    return res.status(200).json(new ApiResponse(200, {video: updatedVideo}, "Video updated successfully"))
 })
 
+// Done 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: delete video
-})
+    if(!isValidObjectId(videoId)) {
+        throw new ApiError(404, "Video not found")
+    }
 
+    // delete video and thumbnail from cloudinary
+    // delete video from db
+    // delete likes, comments, watch history, etc
+
+    const video = await Video.findById(videoId);
+
+    if(!video) {
+        throw new ApiError(404, "Video not found")
+    }
+
+    if(video.owner.toString() !== req.user?._id.toString()) {
+        throw new ApiError(403, "You are not allowed to perform this action")
+    }   
+    
+    const deletedVideo = await Video.findByIdAndDelete(videoId);
+
+    const thumbnailPublicId = deletedVideo?.thumbnail?.public_id;
+    const videoPublicId = deletedVideo?.videoFile?.public_id
+
+    if(thumbnailPublicId) {
+        await deleteOnCloudinary(thumbnailPublicId);
+    }
+    if(videoPublicId) {
+        await deleteOnCloudinary(videoPublicId);
+    }
+
+    // delete likes, comments, watch history, etc
+    await Like.deleteMany({video: videoId});
+    await Comment.deleteMany({video: videoId});
+    await User.updateMany({watchHistory: videoId}, {$pull: {watchHistory: videoId}});
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Video deleted successfully"))
+});
+
+// Done
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+
+    if(!isValidObjectId(videoId)) {
+        throw new ApiError(404, "Video not found")
+    }
+
+    const video = await Video.findById(videoId);
+
+    if(!video) {
+        throw new ApiError(404, "Video not found")
+    }
+
+    if(video.owner.toString() !== req.user?._id.toString()) {
+        throw new ApiError(403, "You are not allowed to perform this action")
+    }
+
+    const toggleVideoPublishStatus = await Video.findByIdAndUpdate(videoId, {
+        $set: {
+            isPublic: !video?.isPublic
+        }
+    }, {new: true})
+
+    if(!toggleVideoPublishStatus) {
+        throw new ApiError(500, "Error updating video status, please try again")
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "Video status updated successfully",
+        video: toggleVideoPublishStatus.isPublic
+    })
 })
 
 export {
