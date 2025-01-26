@@ -58,12 +58,107 @@ const publishAVideo = asyncHandler(async (req, res) => {
     
 });
 
+
+// Done
 const getVideoById = asyncHandler(async (req, res) => {
     
         const { videoId } = req.params
         if (!isValidObjectId(videoId)) {
             throw new ApiError(404, "Video not found")
         }
+
+        const video = await Video.aggregate([
+            {
+                $match:{
+                    _id:new mongoose.Types.ObjectId(videoId)
+                }
+            },
+            {
+                $lookup: {
+                    from:"likes",
+                    localField:"_id",
+                    foreignField:"video",
+                    as:"likesDetails",
+                }
+            },
+            {
+                $lookup: {
+                    from:"users",
+                    localField:"owner",
+                    foreignField:"_id",
+                    as:"OwnerDetails",
+                    pipeline:[
+                    { 
+                        $lookup:{
+                            from:"subscriptions",
+                            localField:"_id",
+                            foreignField:"channel",
+                            as:"subscribers"
+                        }
+                    },
+                    {
+                        $addFields:{
+                            subscriberCount:{$size:"$subscribers"},
+                            isSubscribed:{
+                                $cond:{
+                                    if:{$in:[req.user?._id, "$subscribers.subscriber"]},
+                                    then:true,
+                                    else:false
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $project:{
+                            username:1,
+                            subscriberCount:1,
+                            "avatar.url":1,
+                            isSubscribed:1
+                        }
+                    }
+                ]
+                }
+            },
+            {
+                $addFields:{
+                    likeCount:{$size:"$likesDetails"},
+                    ownerDetails:{$arrayElemAt:["$OwnerDetails", 0]},
+                    isLiked:{
+                        $cond:{
+                            if:{$in:[req.user?._id, "$likesDetails.user"]},
+                            then:true,
+                            else:false
+                        }
+                    }
+                }
+            },
+            {
+                $project:{
+                    _id:1,
+                    title:1,
+                    description:1,
+                    view:1,
+                    createdAt:1,
+                    duration:1,
+                    "videoFile.url":1,
+                    likeCount:1,
+                    ownerDetails:1,
+                    isLiked:1,
+                    isPublic:1
+                }
+            }
+        ]);
+
+        if(!video){
+            throw new ApiError(404, "Video not found")
+        }
+
+        await Video.findByIdAndUpdate(videoId, {$inc: {views: 1}});
+
+        // add watch history
+      await User.findByIdAndUpdate(req.user?._id, {$addToSet: {watchHistory: videoId}})
+
+        return res.status(200).json(new ApiResponse(200, {video}, "Video fetched successfully"))
         
     
 })
