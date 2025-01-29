@@ -11,7 +11,63 @@ const getChannelStats = asyncHandler(async (req, res) => {
 })
 
 const getChannelVideos = asyncHandler(async (req, res) => {
-    // TODO: Get all the videos uploaded by the channel
+
+    const userId = req.user?._id
+
+    const videos = await Video.aggregate([
+        {
+            $match: {
+                owner: new mongoose.Types.ObjectId(userId)
+            }
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "video",
+                as: "likes"
+            }
+        },
+        {
+            $count: "videoCount"
+        },
+        {
+          $addFields: {
+            createdAt:{
+                $dateToParts:{
+                    date: "$createdAt"
+                }
+            },
+            likesCount: {
+              $size: "$likes"
+            },
+            videoCount:{
+                $size: "$_id"
+            }
+          }
+        },
+        {
+            $sort: {
+                createdAt: -1
+            }
+        },
+        {
+            $project: {
+               _id: 1,
+                title: 1,
+                description: 1,
+                'thumbnail.url': 1,
+                'videoFile.url': 1,
+                isPublic: 1,
+                createdAt: {
+                    year: 1,
+                    month: 1,
+                    day: 1
+                },
+                likesCount: 1                
+            }
+        }
+    ])
 })
 
 export {
