@@ -3,7 +3,7 @@ import mongoose,{Schema} from "mongoose";
 const playlistSchema = new Schema({
     name: {
         type: String,
-        required: true,
+        required: [true, 'Name is required'],
         trim: true,
     },
     owner:{
@@ -20,7 +20,7 @@ const playlistSchema = new Schema({
     ],
     description: {
         type: String,
-        required: true,
+        required: [true, 'Description is required'],
         trim: true,
     },
 }, {timestamps: true});
