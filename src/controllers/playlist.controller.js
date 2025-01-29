@@ -150,10 +150,88 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, "Playlists fetched successfully", playlists))
 })
-
+// get playlist by id
 const getPlaylistById = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
-    //TODO: get playlist by id
+
+    if(!isValidObjectId(playlistId)){
+        throw new ApiError(400, "Invalid playlist id")
+    }
+
+    const playlist = await Playlist.aggregate([
+        {
+            $match:{
+                _id: mongoose.Types.ObjectId(playlistId);
+            }
+        },
+        {
+            $lookup:{
+                from: "videos",
+                localField: "videos",
+                foreignField: "_id",
+                as: "videos"
+            }
+        },
+        {
+            $match:{
+                "videos.isPublic": true
+            }
+        },
+        {
+          $lookup:{
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner"
+          }
+        },
+        {
+            $addFields:{
+                totalVideos: {
+                    $size: "$videos"
+                },
+                totalViews: {
+                    $sum: "$videos.views"
+                },
+                owner: {
+                    $arrayElemAt: ["$owner", 0]
+                }
+            }
+        },
+        {
+            $project:{
+                _id: 1,
+                name: 1,
+                description: 1,
+                totalVideos: 1,
+                totalViews: 1,
+                owner: {
+                    _id: 1,
+                    username: 1,
+                    fullName: 1,
+                    "avatar.url": 1
+                },
+                videos:{
+                    _id: 1,
+                    title: 1,
+                    description: 1,
+                    duration: 1,
+                    views: 1,
+                    duration: 1,
+                    "videoFile.url": 1,
+                    "thumbnail.url": 1,
+                },
+                updatedAt: 1,
+                createdAt: 1
+            }
+        }
+    ]);
+
+    if(!playlist){
+        throw new ApiError(404, "Playlist not found")
+    }
+
+    return res.status(200).json(new ApiResponse(200, "Playlist fetched successfully", playlist))
 })
 
 // add video to playlist
