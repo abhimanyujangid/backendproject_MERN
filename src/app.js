@@ -54,5 +54,5 @@ app.use('/api/v1/playlist', playlistRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
 
 // Error handling middleware
-// app.use(errorHandler);
+app.use(errorHandler);
 export { app };
