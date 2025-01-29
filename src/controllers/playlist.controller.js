@@ -98,9 +98,57 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     );
 })
 
+// get user playlists
 const getUserPlaylists = asyncHandler(async (req, res) => {
     const {userId} = req.params
-    //TODO: get user playlists
+    
+    if(!isValidObjectId(userId)){
+        throw new ApiError(400, "Invalid user id")
+    }
+
+    const playlists = await Playlist.aggregate([
+        {
+            $match:{
+                owner: mongoose.Types.ObjectId(userId);
+            }
+        },
+        {
+            $lookup:{
+                from: "videos",
+                localField: "videos",
+                foreignField: "_id",
+                as: "videos"
+            }
+        },
+        {
+            $addFields:{
+                totalVideos: {
+                    $size: "$videos"
+                },
+                totalViews: {
+                    $sum: "$videos.views"
+                }
+            }
+        },
+        {
+            $project:{
+                _id: 1,
+                name: 1,
+                description: 1,
+                totalVideos: 1,
+                totalViews: 1,
+                updateAtt: 1,
+                createdAt: 1
+
+            }
+        }
+    ]);
+
+    if(!playlists){
+        throw new ApiError(404, "No playlists found")
+    }
+
+    return res.status(200).json(new ApiResponse(200, "Playlists fetched successfully", playlists))
 })
 
 const getPlaylistById = asyncHandler(async (req, res) => {
